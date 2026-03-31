@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Pro - Control Center</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --premium-gold: #fbbf24;
+            --bg-dark: #020617;
+            --card-bg: #1e293b;
+            --danger: #ef4444;
+            --success: #22c55e;
+            --info: #38bdf8;
+            --input-bg: #0f172a;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; background: var(--bg-dark); 
+            color: white; margin: 0; display: flex; min-height: 100vh;
+        }
+
+        /* LOGIN OVERLAY */
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark); z-index: 9999; display: none;
+            justify-content: center; align-items: center;
+        }
+        .login-card {
+            background: var(--card-bg); padding: 20px; border-radius: 15px;
+            width: 85%; max-width: 350px; border: 1px solid #334155; text-align: center;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 240px; background: #0f172a; border-right: 1px solid #334155;
+            padding: 15px; display: flex; flex-direction: column;
+        }
+        .main-content { flex: 1; padding: 15px; overflow-y: auto; display: none; }
+
+        .nav-item {
+            padding: 10px 12px; border-radius: 8px; margin-bottom: 8px;
+            cursor: pointer; transition: 0.3s; color: #94a3b8; display: flex; align-items: center;
+            font-size: 14px;
+        }
+        .nav-item i { margin-right: 10px; width: 18px; }
+        .nav-item:hover, .nav-item.active { background: #1e293b; color: var(--premium-gold); }
+
+        .nav-logout { color: var(--danger); margin-top: auto; border: 1px solid var(--danger); }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid; 
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px; margin-bottom: 20px;
+        }
+        .stat-card {
+            background: var(--card-bg); padding: 12px; border-radius: 12px;
+            border: 1px solid #334155; text-align: center;
+        }
+        .stat-card i { font-size: 18px; color: var(--premium-gold); margin-bottom: 5px; }
+        .stat-card h3 { margin: 2px 0; font-size: 20px; }
+        .stat-card p { margin: 0; color: #94a3b8; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* CARDS & FORMS */
+        .card { 
+            background: var(--card-bg); padding: 18px; border-radius: 12px; 
+            border: 1px solid #334155; margin-bottom: 15px; display: none;
+        }
+        .card.active { display: block; animation: fadeIn 0.3s; }
+        .card h2 { font-size: 18px; margin-top: 0; margin-bottom: 15px; color: var(--premium-gold); }
+
+        label { display: block; margin-bottom: 5px; font-size: 12px; color: #94a3b8; margin-top: 12px; }
+        input, select { 
+            width: 100%; padding: 10px; border-radius: 6px; 
+            border: 1px solid #475569; background: #0f172a; color: white; box-sizing: border-box;
+            font-size: 14px; margin-bottom: 5px;
+        }
+
+        /* NEW ANALYTICS UI */
+        .analytics-box { 
+            background: #020617; padding: 15px; border-radius: 10px; margin-top: 15px; 
+            display: none; border: 1px solid #1e293b;
+        }
+        .ana-row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #1e293b; font-size: 13px; }
+        
+        .table-container { width: 100%; overflow-x: auto; margin-top: 15px; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 400px; }
+        th, td { border: 1px solid #334155; padding: 10px; text-align: left; }
+        th { background: #0f172a; color: #94a3b8; }
+        .tag-sender { color: #60a5fa; font-weight: bold; }
+        .tag-receiver { color: #f472b6; font-weight: bold; }
+
+        .btn { 
+            background: var(--premium-gold); color: #000; font-weight: 700; border: none;
+            padding: 12px; border-radius: 8px; width: 100%; cursor: pointer;
+            text-transform: uppercase; margin-top: 15px; transition: 0.3s; font-size: 13px;
+        }
+        .btn-danger { background: var(--danger); color: white; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .sidebar { width: 100%; border-right: none; border-bottom: 1px solid #334155; padding: 10px; box-sizing: border-box; }
+            .nav-list { display: flex; overflow-x: auto; gap: 5px; padding-bottom: 5px; }
+            .nav-item { white-space: nowrap; margin-bottom: 0; font-size: 11px; padding: 6px 10px; }
+            .sidebar h2 { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="loginOverlay">
+        <div class="login-card">
+            <h2 style="color:var(--premium-gold); font-size: 20px;">ADMIN LOGIN</h2>
+            <input type="text" id="userInp" placeholder="Username">
+            <input type="password" id="passInp" placeholder="Password">
+            <button class="btn" onclick="checkAdminLogin()">ENTER PANEL</button>
+        </div>
+    </div>
+
+    <div class="sidebar" id="sidebarPanel" style="display:none">
+        <h2 style="color:var(--premium-gold); font-size: 18px; margin-bottom: 15px;"><i class="fas fa-user-shield"></i> PANEL</h2>
+        <div class="nav-list">
+            <div class="nav-item active" onclick="showTab('general')"><i class="fas fa-cog"></i> General</div>
+            <div class="nav-item" onclick="showTab('analytics')"><i class="fas fa-chart-pie"></i> Analytics</div>
+            <div class="nav-item" onclick="showTab('security')"><i class="fas fa-lock"></i> Security</div>
+            <div class="nav-item" onclick="showTab('credentials')"><i class="fas fa-user-edit"></i> Admin</div>
+            <div class="nav-item" onclick="showTab('data')"><i class="fas fa-database"></i> Reset</div>
+            <div class="nav-item nav-logout" onclick="logoutAdmin()"><i class="fas fa-sign-out-alt"></i></div>
+        </div>
+    </div>
+
+    <div class="main-content" id="mainContent">
+        <div class="stats-grid">
+            <div class="stat-card"><i class="fas fa-users"></i><h3 id="userCount">0</h3><p>Senders</p></div>
+            <div class="stat-card"><i class="fas fa-paper-plane"></i><h3 id="msgCount">0</h3><p>Sent</p></div>
+            <div class="stat-card"><i class="fas fa-key"></i><h3 id="passCount">0</h3><p>Keys</p></div>
+            <div class="stat-card"><i class="fas fa-globe"></i><h3 id="globalActiveCount">0</h3><p>Active</p></div>
+        </div>
+
+        <div id="general" class="card active">
+            <h2>General Settings</h2>
+            <label>Get Password Link</label>
+            <input type="url" id="tgUrl" placeholder="https://t.me/...">
+            <label>Owner Suggestions</label>
+            <input type="text" id="uidChips" placeholder="Admin, Mod, Boss">
+            <button class="btn" onclick="updateSettings()">SAVE CHANGES</button>
+        </div>
+
+        <div id="analytics" class="card">
+            <h2>Advanced Tracker</h2>
+            <label>Search Mode</label>
+            <select id="searchMode">
+                <option value="receiver">Search by Receiver (Kisne Receive Kiya)</option>
+                <option value="sender">Search by Sender (Kisne Bheja)</option>
+            </select>
+            <label>Username / User ID</label>
+            <input type="text" id="anaSearchInp" placeholder="Enter Username (e.g. OWNER_NAME)">
+            <button class="btn" onclick="fetchHistory()">GET LOGS & STATS</button>
+
+            <div id="anaResultBox" class="analytics-box">
+                <div class="ana-row"><span>Total Found:</span><b id="anaReceived" style="color:var(--success)">0</b></div>
+                <div class="ana-row"><span>Unique Partners:</span><b id="anaUnique" style="color:var(--premium-gold)">0</b></div>
+                <div class="ana-row"><span>Current Target:</span><b id="anaTarget" style="color:var(--info)">None</b></div>
+                
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Sender</th>
+                                <th>Receiver</th>
+                                <th>Message/UID</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody id="chatLogs"></tbody>
+                    </table>
+                </div>
+            </div>
+            <p id="anaNotFound" style="display:none; color:var(--danger); margin-top:10px; font-size:12px">No history found for this user.</p>
+        </div>
+
+        <div id="security" class="card">
+            <h2>Security</h2>
+            <label>User Password</label>
+            <input type="text" id="adminPass">
+            <label>Message Limit</label>
+            <input type="number" id="msgLimit">
+            <button class="btn" onclick="updateSettings()">UPDATE</button>
+            <button class="btn btn-danger" style="background:transparent; border:1px solid var(--danger); color:var(--danger); font-size: 11px;" onclick="logoutAllUsers()">
+                LOGOUT ALL USERS
+            </button>
+        </div>
+
+        <div id="credentials" class="card">
+            <h2>Admin Login</h2>
+            <label>New Username</label>
+            <input type="text" id="newAdminUser">
+            <label>New Password</label>
+            <input type="text" id="newAdminPass">
+            <button class="btn" onclick="updateAdminCredentials()">UPDATE LOGIN</button>
+        </div>
+
+        <div id="data" class="card">
+            <h2 style="color:var(--danger)">Danger Zone</h2>
+            <button class="btn btn-danger" onclick="resetDatabase()">RESET MESSAGES</button>
+            <button class="btn btn-danger" style="background: #991b1b; margin-top: 8px;" onclick="deleteAllPasswords()">DELETE PASSWORDS</button>
+        </div>
+    </div>
+
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+    import { getDatabase, ref, set, update, onValue, remove, get } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyDnM9ry5JreqjRXqQVUSiaBzudXuaAF-QI",
+        databaseURL: "https://send-message-b178e-default-rtdb.asia-southeast1.firebasedatabase.app",
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    // --- Core Logic ---
+    window.addEventListener('load', () => {
+        if(localStorage.getItem('adminLoggedIn') === 'true') showPanel();
+        else document.getElementById('loginOverlay').style.display = 'flex';
+    });
+
+    function showPanel() {
+        document.getElementById('loginOverlay').style.display = 'none';
+        document.getElementById('sidebarPanel').style.display = 'flex';
+        document.getElementById('mainContent').style.display = 'block';
+    }
+
+    window.checkAdminLogin = async function() {
+        const u = document.getElementById('userInp').value;
+        const p = document.getElementById('passInp').value;
+        const snap = await get(ref(db, 'adminSettings'));
+        const creds = snap.val() || { user: "ADMIN", pass: "PASS" };
+        if(u === creds.user && p === creds.pass) {
+            localStorage.setItem('adminLoggedIn', 'true');
+            showPanel();
+        } else alert("Wrong credentials!");
+    };
+
+    window.logoutAdmin = function() {
+        if(confirm("Logout?")) { localStorage.removeItem('adminLoggedIn'); location.reload(); }
+    }
+
+    window.showTab = function(tabId) {
+        document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById(tabId).classList.add('active');
+        if(event) event.currentTarget.classList.add('active');
+    };
+
+    // --- UPGRADED ANALYTICS FEATURE ---
+    window.fetchHistory = async function() {
+        const mode = document.getElementById('searchMode').value;
+        const target = document.getElementById('anaSearchInp').value.trim();
+        const resBox = document.getElementById('anaResultBox');
+        const notFound = document.getElementById('anaNotFound');
+        const tbody = document.getElementById('chatLogs');
+        
+        if(!target) return alert("Enter Username or ID!");
+
+        tbody.innerHTML = "<tr><td colspan='4' style='text-align:center;'>Searching...</td></tr>";
+
+        onValue(ref(db, 'chats'), (snap) => {
+            const data = snap.val();
+            let count = 0, partners = new Set();
+            tbody.innerHTML = "";
+
+            if(data) {
+                Object.values(data).reverse().forEach(m => { // Reverse to see latest first
+                    let isMatch = (mode === 'sender' && m.sender === target) || (mode === 'receiver' && m.receiver === target);
+                    
+                    if(isMatch) {
+                        count++;
+                        partners.add(mode === 'sender' ? m.receiver : m.sender);
+                        const date = new Date(m.timestamp).toLocaleString();
+                        tbody.innerHTML += `
+                            <tr>
+                                <td class="tag-sender">${m.sender}</td>
+                                <td class="tag-receiver">${m.receiver}</td>
+                                <td><b style="color:var(--success)">${m.message}</b></td>
+                                <td style="font-size:10px; color:#94a3b8;">${date}</td>
+                            </tr>
+                        `;
+                    }
+                });
+
+                if(count > 0) {
+                    resBox.style.display = 'block';
+                    notFound.style.display = 'none';
+                    document.getElementById('anaReceived').innerText = count;
+                    document.getElementById('anaUnique').innerText = partners.size;
+                    document.getElementById('anaTarget').innerText = target;
+                } else {
+                    resBox.style.display = 'none';
+                    notFound.style.display = 'block';
+                }
+            }
+        }, { onlyOnce: true });
+    };
+
+    // --- Live Stats Sync ---
+    onValue(ref(db, 'chats'), (snap) => {
+        const data = snap.val() || {};
+        document.getElementById('msgCount').innerText = Object.keys(data).length;
+        const senders = new Set();
+        const globalActive = new Set();
+        Object.values(data).forEach(m => {
+            senders.add(m.sender);
+            globalActive.add(m.sender);
+            globalActive.add(m.receiver);
+        });
+        document.getElementById('userCount').innerText = senders.size;
+        document.getElementById('globalActiveCount').innerText = globalActive.size;
+    });
+
+    onValue(ref(db, 'allPasswords'), (snap) => {
+        document.getElementById('passCount').innerText = snap.exists() ? Object.keys(snap.val()).length : 0;
+    });
+
+    onValue(ref(db, 'settings'), (snap) => {
+        const d = snap.val() || {};
+        document.getElementById('adminPass').value = d.userPassword || "";
+        document.getElementById('msgLimit').value = d.maxMsgs || "";
+        document.getElementById('tgUrl').value = d.tgLink || "";
+        document.getElementById('uidChips').value = d.uidSuggests || "";
+    });
+
+    // --- Update Functions ---
+    window.updateSettings = function() {
+        update(ref(db, 'settings'), {
+            userPassword: document.getElementById('adminPass').value,
+            maxMsgs: parseInt(document.getElementById('msgLimit').value),
+            tgLink: document.getElementById('tgUrl').value,
+            uidSuggests: document.getElementById('uidChips').value
+        }).then(() => alert("Saved! ✅"));
+    };
+
+    window.updateAdminCredentials = function() {
+        const newUser = document.getElementById('newAdminUser').value;
+        const newPass = document.getElementById('newAdminPass').value;
+        if(!newUser || !newPass) return alert("Fill all fields!");
+        set(ref(db, 'adminSettings'), { user: newUser, pass: newPass }).then(() => alert("Updated! ✅"));
+    };
+
+    window.logoutAllUsers = function() { if(confirm("Logout all users?")) update(ref(db, 'settings'), { logoutTrigger: Date.now() }); };
+    window.deleteAllPasswords = function() { if(confirm("Delete all passwords?")) remove(ref(db, 'allPasswords')); };
+    window.resetDatabase = function() { if(confirm("Clear all messages?")) remove(ref(db, 'chats')); };
+</script>
+</body>
+  </html>
